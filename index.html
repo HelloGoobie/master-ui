@@ -946,20 +946,30 @@
         }
         const HUD_SELECTORS = ".div_money, .div_bmoney, .div_job";
         // Themes the money / bank / job read-outs as small pills in the chosen theme's colours and font.
+        function capAlpha(val, c) {
+            const named = { black: '0,0,0', white: '255,255,255' };
+            return val.replace(/#([0-9a-fA-F]{6}|[0-9a-fA-F]{3})\b|rgba?\(([^)]*)\)|\b(black|white)\b/g, (m, hex, fn, nm) => {
+                let r, g, b, a = 1;
+                if (hex) { const h = hex.length === 3 ? hex.split('').map(x => x + x).join('') : hex; r = parseInt(h.slice(0, 2), 16); g = parseInt(h.slice(2, 4), 16); b = parseInt(h.slice(4, 6), 16); }
+                else if (fn) { const p = fn.split(',').map(x => parseFloat(x)); if (p.length < 3 || p.some(isNaN)) return m; [r, g, b] = p; if (p.length > 3) a = p[3]; }
+                else { [r, g, b] = named[nm].split(',').map(Number); }
+                return 'rgba(' + r + ',' + g + ',' + b + ',' + Math.min(a, c).toFixed(2) + ')';
+            });
+        }
         function hudExtras(themeCSS) {
             const rule = (sel) => { const m = themeCSS.match(new RegExp('(?:^|[\\s}])' + sel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*\\{([^}]*)\\}')); return m ? m[1] : ''; };
             const decls = (body) => body.split(';').map(d => d.trim()).filter(Boolean).map(d => { const i = d.indexOf(':'); return [d.slice(0, i).trim(), d.slice(i + 1).replace(/!important/g, '').trim()]; });
             const menu = decls(rule('.menu')), text = decls(rule('.choices div'));
             const pick = (arr, names) => arr.filter(([k]) => names.includes(k));
             const out = [];
-            for (const [k, v] of pick(menu, ['background', 'background-color', 'box-shadow', 'backdrop-filter', '-webkit-backdrop-filter'])) out.push(k + ': ' + v);
+            for (const [k, v] of pick(menu, ['background', 'background-color'])) out.push(k + ': ' + capAlpha(v, 0.6));
             const border = menu.find(([k]) => k === 'border');
             if (border) { const col = border[1].match(/(#[0-9a-fA-F]{3,6}|rgba?\([^)]*\))\s*$/); out.push('border: 1px solid ' + (col ? col[1] : '#888')); }
             const rad = menu.find(([k]) => k === 'border-radius');
-            if (rad) out.push('border-radius: ' + (parseFloat(rad[1]) > 12 ? '10px' : rad[1].split(' ')[0]));
+            if (rad) out.push('border-radius: ' + (parseFloat(rad[1]) > 8 ? '8px' : rad[1].split(' ')[0]));
             for (const [k, v] of pick(text, ['color', 'font-family', 'font-weight', 'text-transform'])) out.push(k + ': ' + v);
             if (!out.length) return '';
-            return '\n' + HUD_SELECTORS + ' { ' + out.map(x => x + ' !important').join('; ') + '; padding: 2px 10px !important; }\n';
+            return '\n' + HUD_SELECTORS + ' { ' + out.map(x => x + ' !important').join('; ') + '; box-shadow: none !important; padding: 0 10px !important; margin-top: 3px !important; box-sizing: border-box !important; }\n';
         }
         function applyEverything() {
             document.getElementById('style-all').checked = true;
